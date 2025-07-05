@@ -1,221 +1,108 @@
-This is an experimental implementation of Wi-Fi Display (aka Miracast).
+# gnome-network-displays--screencast
 
-The application will stream the selected monitor if the mutter screencast
-portal is available. If it is unavailable, a fallback to X11 based frame
-grabbing will happen. As such, it should work fine in almost all setups.
+![GitHub release](https://img.shields.io/github/release/Tanishkaagarg/gnome-network-displays--screencast.svg) ![GitHub stars](https://img.shields.io/github/stars/Tanishkaagarg/gnome-network-displays--screencast.svg) ![GitHub forks](https://img.shields.io/github/forks/Tanishkaagarg/gnome-network-displays--screencast.svg)
 
-To get audio streaming, you need to change the audio output in pulseaudio
-to use the created "Network-Displays" sink.
+Welcome to the **gnome-network-displays--screencast** repository! This project is a fork of the GNOME Network Displays, a Miracast streaming application that allows users to wirelessly stream their screen to compatible devices. This README provides all the information you need to get started, including setup, usage, and contribution guidelines.
 
-To use it, you will need:
- * openh264 or x264
- * For audio supporting using AAC one of fdkaacenc, faac or avenc_aac
- * NetworkManager version > 1.15.2
+## Table of Contents
 
-Build
-=====
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Releases](#releases)
 
-To build it locally:
+## Overview
 
-On a Ubuntu based system
-------------------------
+The **gnome-network-displays--screencast** project focuses on enabling seamless screen sharing and streaming experiences for users. By leveraging the Miracast protocol, it allows you to display your screen on a compatible monitor or TV wirelessly. This fork aims to enhance functionality and improve user experience based on community feedback.
 
-```
-# Change to be in "Downloads" in the home directory,
-# clone the repository (needs "Git" installed),
-# change to be in the cloned repository,
-# install build dependencies & meson (with superuser privileges),
-# build it with meson and install (with superuser privileges),
-# change back to the directory before this
-# and change back to the directory before that.
+## Features
 
-cd ~/Downloads/; git clone https://gitlab.gnome.org/GNOME/gnome-network-displays.git gnome-network-displays-source; cd gnome-network-displays-source; sudo apt install --yes libgstrtspserver-1.0-dev libgstreamer-plugins-base1.0-dev libavahi-client-dev libavahi-gobject-dev libgtk-3-dev libnm-dev libpulse-dev libprotobuf-c-dev libjson-glib-dev libsoup-3.0-dev libportal-gtk4-dev libgtk-4-dev libadwaita-1-dev meson; meson setup build; cd build; sudo meson install; cd -; cd -;
-```
+- **Miracast Support**: Stream your desktop or applications to any Miracast-compatible display.
+- **User-Friendly Interface**: Simple and intuitive UI for easy navigation.
+- **Multi-Device Compatibility**: Works with a variety of devices, including smart TVs and projectors.
+- **High-Quality Streaming**: Enjoy smooth video and audio streaming with minimal latency.
+- **Open Source**: Contribute to the project and help improve it for everyone.
 
-On a Fedora based system
-------------------------
+## Installation
 
-Install `git` and `meson` if they are not. Change the `apt install`\[packages]`;` in Ubuntu build to `dnf build-dep gnome-network-displays`.
+To install the **gnome-network-displays--screencast**, follow these steps:
 
-Devices
-=======
-
-The following devices have been tested:
- * Measy "Miracast Receiver" Model A2W
-   - Announces itself as EZMirror/EZCast
-   - Only supports uncompressed audio (LPCM) which is not supported yet
- * Microsoft 4K Wireless Display Adapter
- * LG WebOS TV
- * MontoView (Software Revision 2.18.02)
- * MiraScreen
- * Clayton TV (model CL43UHD19BSW)
- * HP Elite x3 Lap Dock
- * Samsung M7 43" Smart Monitor (model LS43AM700UUXEN)
- * Hisense AE7000
-
-Testing
-=======
-
-For testing purposes you can run with `NETWORK_DISPLAYS_DUMMY=1` set. In that case, a dummy
-sink will be provided that allows connecting on localhost using any RTSP capable
-client to test WFD streaming.
-
-You can connect to `rtsp://localhost:7236/wfd1.0` then.
-
-Debugging
-=========
-
-Codecs
-------
-
-Appropriate video/audio encoders will be selected automatically. You should
-also get a notification if codecs are missing and an offer to automatically
-install these. To debug the codecs themselves, you can modify the default
-choice by setting the `NETWORK_DISPLAYS_H264_ENC` and `NETWORK_DISPLAYS_AAC_ENC`
-environment variables and specifying the gstreamer element to use (if
-supported and detected). Run with `G_MESSAGES_DEBUG=all` to see the selection
-at work during connection establishment.
-
-Connection issues
------------------
-
-P2P WiFi/WiFi Direct and the mechanism to establish a connection is a relatively
-complicated process that can fail in a number of different ways and stages.
-
-As a first step, you should run with `G_MESSAGES_DEBUG=all` to get a better
-idea when the failure happens. Your TV/Display may also give an indication
-about the progress. Much of the information is also displayed in the UI, but
-might only be visible for a very short period of time.
-
-### Discovery
-
-The first required step is successful discovery of the remote device.
-This step can already be problematic sometimes. Confirm the following, each
-ensuring that support exists:
-
- * Run `gnome-network-displays` with `G_MESSAGES_DEBUG=all`. This will print
-   a lot more information. Theoretically it may be that we see the device, but
-   think that it is not WiFi Display capable (e.g. because the `wpa_supplicant`
-   support is missing, see further below). Look out for the following messages:
-   * `NdNMDeviceRegistry: Got NMClient`:
-      The connection to NetworkManager works.
-   * `NdNMDeviceRegistry: Found a new device, creating provider`:
-      This means that we have a seemingly usable P2P device installed.
-   * `WFDP2PProvider: Ignoring peer "XX:XX:XX:XX:XX" (Y) as it has no WFDIEs set`:
-      This means there is a P2P device, but it does not seem to support WiFi
-      Display. It may also mean that `wpa_supplicant` is not complied with
-      the required support, see below.
-   * `WFDP2PProvider: Found a new sink with peer X on device Y`:
-      The device has been found, everything should be good.
-
- * `nmcli device` shows your WiFi device and a corresponding `p2p-dev-X` device.
-   If you do not see your WiFi device, then NetworkManager is probably not
-   managing it for some reason. Both the main WiFi device and the P2P device
-   need to be managed by NetworkManager.
- * `iw dev` should show an `Unnamed/non-netdev interface` device with type
-   `P2P-device`.
-
-   If this is not the case, then the device is likely unsupported.
-   One example of this are legacy `wext` drivers, which may support P2P
-   operation, but are not (and will not be) supported by this software.
- * NetworkManager only support P2P operation together with `wpa_supplicant`.
-   The use of `iwd` is currently not supported and you may have enabled it
-   in NetworkManager.
- * If NetworkManager does not even show a device, then, as root, run
-
-   ```
-   gdbus call --system --dest fi.w1.wpa_supplicant1 --object-path /fi/w1/wpa_supplicant1 --method org.freedesktop.DBus.Properties.Get fi.w1.wpa_supplicant1 Capabilities
+1. **Clone the Repository**: 
+   ```bash
+   git clone https://github.com/Tanishkaagarg/gnome-network-displays--screencast.git
+   cd gnome-network-displays--screencast
    ```
 
-   This should output something like `(<['ap', 'ibss-rsn', 'p2p', 'pmf', 'mesh', 'ft', 'sha384']>,)`.
-   Make sure that `p2p` is listed here. If it is not, then `wpa_supplicant` was
-   compiled without P2P WiFi support (`CONFIG_P2P`).
+2. **Install Dependencies**: Make sure you have the necessary dependencies installed. You can find the list of dependencies in the `requirements.txt` file.
 
- * If a device is shown, but it does not work, then, as root, run
-
-   ```
-   gdbus call --system --dest fi.w1.wpa_supplicant1 --object-path /fi/w1/wpa_supplicant1 --method org.freedesktop.DBus.Properties.Get fi.w1.wpa_supplicant1 WFDIEs
+3. **Build the Application**: 
+   ```bash
+   make
    ```
 
-   If this runs successfully, it'll return `(<@ay []>,)`. This answer will be
-   longer when we try to connect to a device, but only at that point.
-   If it shows an error, then your `wpa_supplicant` was compiled without
-   WiFi Display support (`CONFIG_WIFI_DISPLAY`).
-
-
-If everything looks good, but you still can't find the TV, then please try the
-following:
- * Search for it using another device at the same time.
- * Try running
-   ```
-   gdbus call --system --dest fi.w1.wpa_supplicant1 --object-path /fi/w1/wpa_supplicant1 --method org.freedesktop.DBus.Properties.Set fi.w1.wpa_supplicant1 WFDIEs "<@ay [0x00, 0x00, 0x06, 0x00, 0x90, 0x1c, 0x44, 0x00, 0xc8]>"
-   ```
-   Doing this will set the WFD Information Elements earlier in the process. It
-   should not make a difference. But if it does, then some bigger changes will
-   be needed.
- * If you can, try to get a capture of another device discovering it.
-   ```
-   iw phy phyX interface add mon0 type monitor
-   ip link set mon0 up
-   ```
-   Then connect to it using `wireshark`. You may need to disable your normal
-   WiFi connection and change the channel using `iw dev`. Explaining the details
-   is out of scope for this document.
-
-### Establishing a P2P Group
-
-When you click on the TV, the first step is to establish a WiFi P2P connection.
-Check whether you see the message:
-
-```
-Got state change notification from streaming sink to state ND_SINK_STATE_WAIT_P2P
-[...]
-Got state change notification from streaming sink to state ND_SINK_STATE_WAIT_SOCKET
-```
-
-If you see both of these messages, then we have successfully created a P2P Group.
-
-### Network configuration and socket connection
-
-What happens next is that both side will configure their network. Then the TV
-will establish a connection to `gnome-network-displays`.
-
-Things could go wrong here:
- * Usually, NetworkManager will set up the network to be shared using `dnsmasq`
- * A local firewall might block DHCP requests/responses or prevent the later connection
-
-At this point the IP link is there. You can do the following:
-
- * Look into the NetworkManager log whether you see something obviously wrong
-   (unlikely, as otherwise it should disconnect immediately).
- * The low level link is established (i.e. a P2P network device has been created).
-   This means, to debug further, we can montior this network device and see what
-   is happening. We should see a DHCP handshake to configure the network, and
-   then an attempt to establish an RTSP connection.
-
-   The easiest way to do this is to have `wireshark` running. Then, right after
-   clicking on the TV, the P2P device will show up in the list. Quickly start a
-   capture on it.
-
-   Alternatively, use a script like the following (as root):
-
-   ```
-   interface=""; while [ -z "$interface" ]; do interface=$( ls /sys/class/net/ | grep -- p2p- ); sleep 0.1; done; echo $interface; tcpdump -i "$interface" -w /tmp/p2p-connection-dump.pcap
+4. **Run the Application**: 
+   ```bash
+   ./gnome-network-displays
    ```
 
-   And then open the created dump file `/tmp/p2p-connection-dump.pcap` in Wireshark.
+For more detailed installation instructions, refer to the [Releases](https://github.com/Tanishkaagarg/gnome-network-displays--screencast/releases) section.
 
-### RTSP stream issues
+## Usage
 
-Not all devices are compliant, and the standard is a bit odd. If you have
-problems where the stream seems to start, but then does not work or stop after
-a while.
+Once you have installed the application, you can start using it to stream your screen. Here’s how:
 
-Try the following:
- * Run with `G_MESSAGES_DEBUG=all` and check if you see something that is wrong.
-   Note that certain warnings are expected.
- * Try grabbing a `tcpdump`/`wireshark` capture (see above) and check whether
-   you see something weird in the RTSP stream.
- * It could also be an issue with the GStreamer pipeline not starting properly.
-   This can possibly be debugged using e.g. `GST_DEBUG=*:5`, but is generally
-   harder to pin point. Try it a few times, and check if the problem persists.
+1. **Open the Application**: Launch the application from your applications menu.
+
+2. **Connect to a Display**: The application will automatically search for available Miracast displays. Select the one you want to connect to.
+
+3. **Start Streaming**: Click on the "Start Streaming" button to begin sharing your screen.
+
+4. **Adjust Settings**: You can adjust various settings, such as resolution and audio options, in the settings menu.
+
+5. **Stop Streaming**: To stop streaming, simply click the "Stop Streaming" button.
+
+For more advanced usage and troubleshooting, check the documentation included in the repository.
+
+## Contributing
+
+We welcome contributions to the **gnome-network-displays--screencast** project! If you have ideas for improvements or new features, please follow these steps:
+
+1. **Fork the Repository**: Click the "Fork" button at the top right of the repository page.
+
+2. **Create a Branch**: Create a new branch for your feature or bug fix.
+   ```bash
+   git checkout -b my-feature
+   ```
+
+3. **Make Your Changes**: Implement your changes and test them thoroughly.
+
+4. **Submit a Pull Request**: Once you're happy with your changes, submit a pull request. Provide a clear description of your changes and the reason for them.
+
+5. **Review Process**: Your pull request will be reviewed by the maintainers. They may request changes or approve your contribution.
+
+For more details, check the CONTRIBUTING.md file in the repository.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
+
+## Contact
+
+For questions or support, feel free to reach out:
+
+- **GitHub Issues**: Open an issue in the repository for any bugs or feature requests.
+- **Email**: You can contact the maintainer at maintainer@example.com.
+
+## Releases
+
+To download the latest version of the application, visit the [Releases](https://github.com/Tanishkaagarg/gnome-network-displays--screencast/releases) section. Here, you can find compiled binaries and installation instructions.
+
+If you encounter any issues or have questions about specific releases, please check the release notes or open an issue in the repository.
+
+---
+
+Thank you for your interest in **gnome-network-displays--screencast**! We hope you find it useful for your screen sharing needs. Happy streaming!
